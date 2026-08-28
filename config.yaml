@@ -1,0 +1,18 @@
+data:
+  standardize: true
+  random_state: 42
+
+feature_selection:
+  alpha: 0.05                 # hladina vyznamnosti pro filtracni test
+  min_effect_size: 0.5        # minimalni |Cohenovo d|, aby filtr priznak ponechal
+  silhouette_target: 0.67     # zastavovaci kriterium wrapperu (silueta)
+  knn_accuracy_target: 0.93   # zastavovaci kriterium wrapperu (presnost kNN)
+  knn_neighbors: 3
+  test_size: 0.2
+
+pca:
+  variance_threshold: 95.0    # % kumulativni vysvetlene variance k zachovani
+  n_components: null          # alternativa: pevny pocet komponent (null = pouzij prah)
+
+clustering:
+  n_clusters: 2               # navazujici porovnani s k-means
