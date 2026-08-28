@@ -246,6 +246,10 @@ class PCA:
             "(minimalne components_ a mean_, plus dalsi pole pro obnovu stavu)."
         )
 
+    # @classmethod: metoda dostane misto instance (self) samotnou tridu (cls).
+    # Diky tomu ji lze volat primo na tride bez existujici instance
+    # (PCA.load("model.npz")) a uvnitr pres cls(...) vyrobit novou instanci —
+    # jde o tzv. alternativni konstruktor (druhy zpusob, jak vytvorit PCA).
     @classmethod
     def load(cls, path: str) -> "PCA":
         """Nacte model ulozený metodou ``save`` a vrati hotovou instanci.

@@ -250,26 +250,47 @@ Rozhodovací práh je **hladina významnosti** $\alpha$ (zde `alpha = 0.05`):
 
 $$p < \alpha \;\Rightarrow\; \text{rozdíl je statisticky významný (zamítáme } H_0\text{).}$$
 
-#### 4.2 Předpoklad normality a volba testu
+#### 4.2 Předpoklad normality — parametrický, nebo neparametrický test
 
-Parametrický dvouvýběrový **t-test** (`scipy.stats.ttest_ind`) předpokládá, že hodnoty v každé skupině pocházejí přibližně z **normálního rozdělení**. Tento předpoklad ověříme **Shapiro–Wilkovým testem** (`scipy.stats.shapiro`), jehož $H_0$ zní „data jsou normální":
+Parametrický dvouvýběrový **t-test** předpokládá, že hodnoty v každé skupině pocházejí přibližně z **normálního rozdělení**. Tento předpoklad ověříme **Shapiro–Wilkovým testem** (`scipy.stats.shapiro`), jehož $H_0$ zní „data jsou normální":
 
-- je-li Shapiro `p > alpha` u **obou** skupin → normalitu nezamítáme → použijeme **t-test**;
+- je-li Shapiro `p > alpha` u **obou** skupin → normalitu nezamítáme → použijeme **t-test** (viz odd. 4.3);
 - jinak → použijeme neparametrický **Mann–Whitneyův U test** (`scipy.stats.mannwhitneyu`), který pracuje s pořadími hodnot a žádné rozdělení nepředpokládá.
 
-> **Shapiro–Wilk na velkých vzorcích.** Test normality podléhá témuž jevu jako každý jiný: při stovkách vzorků ve skupině (což je případ dat Breast Cancer) zamítne normalitu i u nepatrné odchylky od Gaussova tvaru. Na reálných datech tohoto cvičení proto větev s t-testem projde jen zřídka a filtr téměř vždy sáhne po Mann–Whitneyově testu. Je to důsledek téhož vlivu velkého $n$, který o odstavec dál motivuje zavedení velikosti účinku.
+> **Shapiro–Wilk na velkých vzorcích.** Test normality podléhá témuž jevu jako každý jiný: při stovkách vzorků ve skupině (což je případ dat Breast Cancer) zamítne normalitu i u nepatrné odchylky od Gaussova tvaru. Na reálných datech tohoto cvičení proto větev s t-testem projde jen zřídka a filtr téměř vždy sáhne po Mann–Whitneyově testu. Je to důsledek téhož vlivu velkého $n$, který o kus dál motivuje zavedení velikosti účinku.
 
-Testová statistika (Welchova varianta t-testu, nepředpokládá shodné rozptyly):
+#### 4.3 Shoda rozptylů — Studentův, nebo Welchův t-test
 
-$$t = \frac{\bar{x}_1 - \bar{x}_2}{\sqrt{\dfrac{s_1^2}{n_1} + \dfrac{s_2^2}{n_2}}}$$
+Rozhodneme-li se pro parametrický test, zbývá otázka, zda mají obě skupiny **shodný rozptyl**. Podle odpovědi má t-test dvě varianty.
 
-#### 4.3 Velikost účinku (effect size)
+**Studentův (sdružený) t-test** — předpokládá $\sigma_1^2 = \sigma_2^2$:
+
+$$t = \frac{\bar{x}_1 - \bar{x}_2}{s_p\,\sqrt{\dfrac{1}{n_1} + \dfrac{1}{n_2}}}, \qquad
+s_p = \sqrt{\frac{(n_1-1)\,s_1^2 + (n_2-1)\,s_2^2}{n_1 + n_2 - 2}}, \qquad
+\nu = n_1 + n_2 - 2$$
+
+**Welchův t-test** — shodu rozptylů nepředpokládá:
+
+$$t = \frac{\bar{x}_1 - \bar{x}_2}{\sqrt{\dfrac{s_1^2}{n_1} + \dfrac{s_2^2}{n_2}}}, \qquad
+\nu \approx \frac{\left(\dfrac{s_1^2}{n_1} + \dfrac{s_2^2}{n_2}\right)^{\!2}}
+{\dfrac{(s_1^2/n_1)^2}{n_1-1} + \dfrac{(s_2^2/n_2)^2}{n_2-1}}$$
+
+Druhý vztah je **Welchova–Satterthwaiteova** aproximace stupňů volnosti (obecně necelé číslo). Sdružená směrodatná odchylka $s_p$ ve Studentově testu je **totéž $s_p$**, které vystupuje v Cohenově $d$ v odd. 4.4.
+
+**Test shody rozptylů** má $H_0: \sigma_1^2 = \sigma_2^2$:
+
+- **F-test**: statistika $F = s_1^2 / s_2^2$ se za platnosti $H_0$ řídí **Fisherovým–Snedecorovým $F$-rozdělením** se stupni volnosti $(n_1-1,\ n_2-1)$. $F$-rozdělení je poměr dvou nezávislých $\chi^2$ rozdělení, každého děleného svými stupni volnosti: výběrová veličina $(n-1)s^2/\sigma^2$ se sama řídí $\chi^2_{\,n-1}$, teprve jejich **poměr** je $F$. (Samotné $\chi^2$ rozdělení se uplatní u *jednovýběrového* testu rozptylu proti známé hodnotě $\sigma_0^2$, kde statistika je $(n-1)s^2/\sigma_0^2$.)
+- F-test i příbuzný **Bartlettův test** jsou ovšem **velmi citlivé na porušení normality** — na nenormálních datech falešně zamítají. V praxi se proto dává přednost **Leveneho testu** (`scipy.stats.levene`), který je vůči nenormalitě robustní, případně Fligner–Killeenovu.
+
+**Co dělá `scipy.stats.ttest_ind`.** Ve výchozím nastavení (`equal_var=True`) počítá **Studentův sdružený** test; `equal_var=False` přepne na **Welchův**. Welch je dnes doporučovaná výchozí volba — je-li rozptyl skutečně shodný, ztrácí jen zanedbatelně síly, a je-li rozdílný (nebo se výrazně liší velikosti skupin), chrání před nadhodnocenou hladinou významnosti.
+
+#### 4.4 Velikost účinku (effect size)
 
 Klíčové omezení p-hodnoty: **říká, zda rozdíl existuje, ne jak je velký.** Při dostatečně velkém počtu vzorků vyjde jako „významný" i zcela triviální rozdíl — stačí zvětšit $n$ a p-hodnota klesne. **Velikost účinku** měří magnitudu rozdílu nezávisle na $n$. Používáme **Cohenovo $d$**:
 
 $$d = \frac{\bar{x}_1 - \bar{x}_2}{s_p}, \qquad s_p = \sqrt{\frac{(n_1-1)\,s_1^2 + (n_2-1)\,s_2^2}{n_1 + n_2 - 2}}$$
 
-kde $s_p$ je sdružená (pooled) směrodatná odchylka. Hodnota $d$ vyjadřuje rozdíl průměrů **v jednotkách směrodatné odchylky**:
+kde $s_p$ je táž sdružená (pooled) směrodatná odchylka jako ve Studentově t-testu (odd. 4.3). Hodnota $d$ vyjadřuje rozdíl průměrů **v jednotkách směrodatné odchylky**:
 
 | $\lvert d \rvert$ | Interpretace (Cohen, 1988) |
 |:---:|:---|
@@ -279,7 +300,7 @@ kde $s_p$ je sdružená (pooled) směrodatná odchylka. Hodnota $d$ vyjadřuje r
 
 Pomocná metoda `_cohens_d` je **předvyplněna** — studentským úkolem je zapojit obě kritéria, ne odvozovat vzorec.
 
-#### 4.4 Dvojí kritérium
+#### 4.5 Dvojí kritérium
 
 Filtrační selektor ponechá příznak **právě tehdy**, když projde **obě** kritéria zároveň:
 
@@ -518,6 +539,8 @@ Třída `PCA` je samostatná (nedědí z ničeho). **Předvyplněny** jsou `__in
 #   2. Volba testu:
 #        obě p_shapiro > self.alpha  → p = scipy.stats.ttest_ind(a, b).pvalue
 #        jinak                        → p = scipy.stats.mannwhitneyu(a, b).pvalue
+#      (ttest_ind je ve výchozím stavu Studentův sdružený test;
+#       equal_var=False by dal Welchův — viz teorie, odd. 4.3)
 #   3. Velikost účinku: d = self._cohens_d(a, b)
 #   4. Ponechej j PRÁVĚ KDYŽ:  p < self.alpha  AND  abs(d) >= self.min_effect_size
 #
@@ -525,7 +548,9 @@ Třída `PCA` je samostatná (nedědí z ničeho). **Předvyplněny** jsou `__in
 # (prázdné pole np.array([], dtype=int), pokud neprojde žádný).
 ```
 
-Pojmové těžiště bloku: **obě** kritéria současně. Selektor postavený pouze na `p < alpha` je nesprávný — neochrání před příznakem, který je významný, ale odděluje skupiny jen zanedbatelně (viz teorie, odd. 4.3–4.4).
+Pojmové těžiště bloku: **obě** kritéria současně. Selektor postavený pouze na `p < alpha` je nesprávný — neochrání před příznakem, který je významný, ale odděluje skupiny jen zanedbatelně (viz teorie, odd. 4.4–4.5).
+
+> **Zjednodušení.** Referenční řešení test shody rozptylů (odd. 4.3) vynechává a volá `ttest_ind` ve výchozím nastavení — Blok II se soustředí na propojení dvou kritérií, ne na úplný rozhodovací strom. Přidat `scipy.stats.levene` a podle jeho výsledku přepínat `equal_var` je vítané rozšíření.
 
 ---
 
